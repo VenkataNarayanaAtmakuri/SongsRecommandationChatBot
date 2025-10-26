@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura - Your AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+      }
+
+      /* Animated Gradient Background */
+      @keyframes gradient-animation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .animated-gradient {
+        background: linear-gradient(-45deg, #1d2b64, #373b44, #4286f4, #f8cdda);
+        background-size: 400% 400%;
+        animation: gradient-animation 15s ease infinite;
+      }
+
+      /* Glassmorphism Effect */
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .full-page-chat {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* Custom scrollbar */
+      .chat-messages::-webkit-scrollbar { width: 6px; }
+      .chat-messages::-webkit-scrollbar-track { background: transparent; }
+      .chat-messages::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+      .chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+      /* Chat bubble base */
+      .chat-bubble {
+        animation: fadeIn 0.4s ease-out;
+        max-width: 80%;
+        word-wrap: break-word;
+      }
+      
+      .bot-message .chat-bubble {
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 20px 20px 20px 5px;
+      }
+      .user-message .chat-bubble {
+        background: #3b82f6;
+        border-radius: 20px 20px 5px 20px;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+      }
+
+      /* Typing indicator */
+      @keyframes bounce {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-4px); }
+      }
+      .typing-indicator span {
+        animation: bounce 1.3s linear infinite;
+      }
+      .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+      .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+      /* Glowing dot */
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .glowing-dot {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      
+      /* Welcome Screen */
+      #welcome-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 2rem;
+        text-align: center;
+        animation: fadeIn 0.5s ease-out;
+      }
+      #welcome-container.hidden {
+        display: none;
+      }
+      
+      .example-prompt {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.9em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .example-prompt:hover {
+        background: rgba(0, 0, 0, 0.6);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+      
+      /* Modal Styling */
+      .modal-backdrop {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      
+      /* === NEW: Styling for lists parsed by marked.js === */
+      .chat-bubble ul, .chat-bubble ol {
+          list-style-position: inside;
+          margin-left: 10px;
+          margin-top: 5px;
+      }
+      .chat-bubble li {
+          margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body
+    class="animated-gradient text-gray-100"
+  >
+    <div
+      class="full-page-chat"
+    >
+      <div
+        class="flex-shrink-0 border-b border-white/10 p-4 glass-effect"
+      >
+        <div class="flex items-center justify-between max-w-5xl mx-auto">
+            <div class="flex items-center space-x-3">
+              <div
+                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white overflow-hidden"
+              >
+                <img src="/static/images/avatar.png" alt="Aura" class="h-full w-full object-cover">
+              </div>
+              <div>
+                <h1 class="text-lg font-semibold text-white">Aura</h1>
+                <p class="flex items-center text-xs text-gray-300">
+                  <span class="glowing-dot mr-1.5 h-2 w-2 rounded-full bg-green-400"></span>
+                  Online
+                </p>
+              </div>
+            </div>
+          <button
+            onclick="openClearModal()"
+            class="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-gray-200 focus:outline-none"
+            title="Clear Chat"
+          >
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="chat-messages"
+        class="chat-messages flex-1 overflow-y-auto bg-black/20"
+      >
+        <div id="welcome-container" class="max-w-5xl mx-auto">
+          <div
+            class="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg mb-4 overflow-hidden"
+          >
+            <img src="/static/images/avatar.png" alt="Aura" class="h-full w-full object-cover">
+          </div>
+          <h2 class="text-4xl font-bold text-white mb-2">Hello, I'm Aura</h2>
+          <p class="text-lg text-gray-300 mb-8">
+            Your personal AI assistant. How can I help you today?
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+            <button class="example-prompt" onclick="sendExample('What\'s the weather in New York?')">
+              "What's the weather in New York?"
+            </button>
+            <button class="example-prompt" onclick="sendExample('Recommend some happy songs')">
+              "Recommend some happy songs"
+            </button>
+            <button class="example-prompt" onclick="sendExample('Tell me a fun fact about the ocean')">
+              "Tell me a fun fact about the ocean"
+            </button>
+            <button class="example-prompt" onclick="sendExample('How do I make a good cup of coffee?')">
+              "How do I make a good cup of coffee?"
+            </button>
+          </div>
+        </div>
+        
+        </div>
+
+      <div
+        class="chat-input-wrapper flex-shrink-0 border-t border-white/10 p-4 glass-effect"
+      >
+        <div
+          class="flex items-center space-x-3 rounded-lg border border-white/20 bg-black/20 p-2 focus-within:border-white/50 max-w-5xl mx-auto"
+        >
+          <textarea
+            id="user-input"
+            placeholder="Type your message here..."
+            rows="1"
+            onkeydown="handleKeyPress(event)"
+            class="flex-1 resize-none overflow-hidden bg-transparent px-4 py-2 text-base text-gray-100 placeholder-gray-400 focus:outline-none"
+            style="min-height: 48px; max-height: 120px"
+          ></textarea>
+          <button
+            onclick="sendMessage()"
+            class="send-button flex-shrink-0 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-5 py-3 text-white shadow-lg transition-all duration-200 hover:from-blue-600 hover:to-purple-700 focus:outline-none transform hover:scale-105 active:scale-95"
+          >
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div
+      id="clear-chat-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden"
+    >
+      <div
+        class="modal-backdrop fixed inset-0"
+        onclick="closeClearModal()"
+      ></div>
+      
+      <div
+        class="glass-effect rounded-lg shadow-xl w-full max-w-md z-10 p-6"
+      >
+        <div class="flex items-start justify-between">
+          <h2 class="text-2xl font-bold text-white">Clear Conversation</h2>
+          <button onclick="closeClearModal()" class="text-gray-400 hover:text-white">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <p class="text-gray-300 mt-4">
+          Are you sure you want to clear this entire conversation? This action cannot be undone.
+        </p>
+        <div class="mt-6 flex justify-end space-x-3">
+          <button
+            onclick="closeClearModal()"
+            class="px-5 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onclick="confirmClearChat()"
+            class="px-5 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-all"
+          >
+            Clear Chat
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <script>
+      const chatMessages = document.getElementById("chat-messages");
+      const userInput = document.getElementById("user-input");
+      const welcomeContainer = document.getElementById("welcome-container");
+      const clearChatModal = document.getElementById("clear-chat-modal");
+
+      window.onload = () => {};
+
+      function openClearModal() {
+        clearChatModal.classList.remove('hidden');
+      }
+      function closeClearModal() {
+        clearChatModal.classList.add('hidden');
+      }
+      
+      function confirmClearChat() {
+        clearChat();
+        closeClearModal();
+      }
+
+      async function clearChat() {
+        await fetch("/", { method: "GET" });
+        const messages = chatMessages.querySelectorAll('.chat-message-wrapper');
+        messages.forEach(msg => msg.remove());
+        welcomeContainer.classList.remove('hidden');
+      }
+
+      userInput.addEventListener("input", () => {
+        userInput.style.height = "auto";
+        userInput.style.height = userInput.scrollHeight + "px";
+      });
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+
+      function sendExample(promptText) {
+        userInput.value = promptText;
+        sendMessage();
+      }
+
+      async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        welcomeContainer.classList.add('hidden');
+        addMessage(message, "user-message"); // User messages don't need markdown
+        userInput.value = "";
+        userInput.style.height = "auto";
+        showTypingIndicator();
+
+        try {
+          const response = await fetch("/process-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message }),
+          });
+
+          const data = await response.json();
+          removeTypingIndicator();
+
+          if (!response.ok) {
+            throw new Error(data.response || "An error occurred");
+          }
+          
+          addMessage(data.response, "bot-message"); // Bot messages will be parsed
+
+        } catch (error) {
+          console.error("Error processing message:", error);
+          removeTypingIndicator();
+          addMessage(`Sorry, something went wrong: ${error.message}`, "bot-message");
+        }
+      }
+
+      function addMessage(text, className) {
+        welcomeContainer.classList.add('hidden');
+      
+        const messageWrapper = document.createElement("div");
+        messageWrapper.className = `chat-message-wrapper flex items-start space-x-3 p-5 py-2 max-w-5xl mx-auto w-full ${
+          className === "user-message" ? "justify-end" : "justify-start"
+        }`;
+        
+        const avatar = document.createElement("div");
+        avatar.className = `flex-shrink-0 w-8 h-8 rounded-full text-white text-sm overflow-hidden ${
+          className === "user-message"
+            ? "bg-gradient-to-r from-green-400 to-blue-500 order-2"
+            : "bg-gradient-to-r from-blue-500 to-purple-600 order-1"
+        }`;
+        
+        if (className === 'user-message') {
+            avatar.innerHTML = `<i class="fas fa-user h-full w-full p-2"></i>`;
+            avatar.classList.add('flex', 'items-center', 'justify-center');
+        } else {
+            avatar.innerHTML = `<img src="/static/images/avatar.png" alt="Aura" class="h-full w-full object-cover">`;
+        }
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `chat-bubble p-4 shadow-md text-white ${
+            className === 'user-message' ? 'order-1' : 'order-2'
+        }`;
+        
+        // === NEW: Step 2 - Use marked.parse() to render markdown ===
+        if (className === 'user-message') {
+            // User messages are plain text
+            messageDiv.textContent = text;
+        } else {
+            // Bot messages are parsed as HTML
+            // marked.parse() converts markdown like **text** to <strong>text</strong>
+            messageDiv.innerHTML = marked.parse(text);
+        }
+        // ==========================================================
+
+        messageWrapper.appendChild(avatar);
+        messageWrapper.appendChild(messageDiv);
+        chatMessages.appendChild(messageWrapper);
+        scrollToBottom();
+      }
+
+      function showTypingIndicator() {
+        welcomeContainer.classList.add('hidden');
+      
+        const indicatorWrapper = document.createElement("div");
+        indicatorWrapper.id = "typing-indicator-wrapper";
+        indicatorWrapper.className = "chat-message-wrapper flex items-start space-x-3 p-5 py-2 max-w-5xl mx-auto w-full justify-start";
+
+        const avatar = document.createElement("div");
+        avatar.className = "flex-shrink-0 w-8 h-8 rounded-full text-white text-sm bg-gradient-to-r from-blue-500 to-purple-600 order-1 overflow-hidden";
+        avatar.innerHTML = `<img src="/static/images/avatar.png" alt="Aura" class="h-full w-full object-cover">`;
+
+        // Bubble
+        const indicatorBubble = document.createElement("div");
+        indicatorBubble.className = "chat-bubble typing-indicator flex items-center space-x-1 p-4 shadow-md order-2";
+        indicatorBubble.style.background = "rgba(0, 0, 0, 0.4)";
+        indicatorBubble.style.borderRadius = "20px 20px 20px 5px";
+        indicatorBubble.innerHTML = `
+            <span class="h-2 w-2 rounded-full bg-gray-400"></span>
+            <span class="h-2 w-2 rounded-full bg-gray-400"></span>
+            <span class="h-2 w-2 rounded-full bg-gray-400"></span>
+        `;
+        
+        indicatorWrapper.appendChild(avatar);
+        indicatorWrapper.appendChild(indicatorBubble);
+        chatMessages.appendChild(indicatorWrapper);
+        scrollToBottom();
+      }
+
+      function removeTypingIndicator() {
+        const indicator = document.getElementById("typing-indicator-wrapper");
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
